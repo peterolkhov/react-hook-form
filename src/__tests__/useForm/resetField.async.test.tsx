@@ -120,7 +120,10 @@ describe('resetField with pending validation', () => {
             defaultValues: { test: 'current', other: 'other' },
             ...(kind === 'resolver' ? { resolver } : {}),
           });
-          methods.register('test', kind === 'built-in' ? { validate: check } : {});
+          methods.register(
+            'test',
+            kind === 'built-in' ? { validate: check } : {},
+          );
           return { methods, errors: methods.formState.errors };
         });
         let old!: Promise<boolean>;
@@ -253,7 +256,10 @@ describe('resetField with pending validation', () => {
           defaultValues: { test: 'current', other: 'other' },
           ...(kind === 'resolver' ? { resolver } : {}),
         });
-        methods.register('test', kind === 'built-in' ? { validate: check } : {});
+        methods.register(
+          'test',
+          kind === 'built-in' ? { validate: check } : {},
+        );
         return {
           methods,
           pending: methods.formState.validatingFields.test,
@@ -408,8 +414,8 @@ describe('resetField with pending validation', () => {
       request.resolve('obsolete');
       await validation;
     });
-    expect((screen.getByRole('textbox') as HTMLInputElement).validationMessage).toBe(
-      '',
-    );
+    expect(
+      (screen.getByRole('textbox') as HTMLInputElement).validationMessage,
+    ).toBe('');
   });
 });

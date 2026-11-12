@@ -1749,8 +1749,7 @@ export function createFormControl<
       (_isTracked('isValid') && isValid !== _formState.isValid)
         ? {}
         : { name }),
-      ...((_options.resolver || !name) &&
-      resetFieldCallId === _resetFieldCallId
+      ...((_options.resolver || !name) && resetFieldCallId === _resetFieldCallId
         ? { isValid }
         : {}),
       ...(options.shouldTouch && _isTracked('touchedFields')
