@@ -287,9 +287,9 @@ export function createFormControl<
       const resetCallId = _resetCallId;
       let isValid: boolean;
       if (_options.resolver) {
-        isValid = isEmptyObject(
-          (await _runSchema(undefined, () => callId === _setValidCallId)).errors,
-        );
+        const updateValidating = createValidationCleanup();
+        isValid = isEmptyObject((await _runSchema(undefined, false)).errors);
+        callId === _setValidCallId && updateValidating();
       } else {
         isValid = await executeBuiltInValidation({
           fields: _fields,
@@ -353,6 +353,29 @@ export function createFormControl<
         isValidating: !isEmptyObject(_formState.validatingFields),
       });
     }
+  };
+
+  const createValidationCleanup = (names = [..._names.mount]) => {
+    const resetCallId = _resetCallId;
+    const resetFieldCallId = _resetFieldCallId;
+    const registerCallId = _registerCallId;
+
+    return () => {
+      if (resetCallId === _resetCallId) {
+        _updateIsValidating(
+          names.filter(
+            (name) =>
+              isFieldValidationCurrent(name, resetFieldCallId) &&
+              !(_registerCallIds[name] > registerCallId) &&
+              !Object.keys(_resetFieldCallIds).some(
+                (resetName) =>
+                  _resetFieldCallIds[resetName] > resetFieldCallId &&
+                  resetName.startsWith(`${name}.`),
+              ),
+          ),
+        );
+      }
+    };
   };
 
   const _updateDirtyFields = () => {
@@ -779,13 +802,12 @@ export function createFormControl<
 
   const _runSchema = async (
     name?: InternalFieldName[],
-    shouldUpdateValidating = () => true,
+    shouldUpdateValidating = true,
   ) => {
     const resetCallId = _resetCallId;
     const resetFieldCallId = _resetFieldCallId;
-    const names = name || [..._names.mount];
-    const registerCallId = _registerCallId;
-    _updateIsValidating(names, true);
+    const updateValidating = createValidationCleanup(name);
+    _updateIsValidating(name, true);
     let result = await _options.resolver!(
       _formValues,
       _options.context,
@@ -811,17 +833,7 @@ export function createFormControl<
             : unset(result.errors, resetName);
         }
       }
-      shouldUpdateValidating() &&
-        _updateIsValidating(
-          names.filter(
-            (name) =>
-              isFieldValidationCurrent(name, resetFieldCallId) &&
-              !(_registerCallIds[name] > registerCallId) &&
-              !resetNames.some((resetName) =>
-                resetName.startsWith(`${name}.`),
-              ),
-          ),
-        );
+      shouldUpdateValidating && updateValidating();
     }
 
     return result;
@@ -834,11 +846,14 @@ export function createFormControl<
     const registeredNames = names
       ? names.filter((name) => get(_fields, name))
       : [];
-    const { errors } = await _runSchema(names);
+    const updateValidating = createValidationCleanup(names);
+    const { errors } = await _runSchema(names, false);
 
     if (resetCallId !== _resetCallId) {
       return errors;
     }
+
+    updateValidating();
 
     if (names) {
       for (const name of names) {
@@ -1542,7 +1557,8 @@ export function createFormControl<
 
       if (_options.resolver) {
         const resetCallId = _resetCallId;
-        const { errors } = await _runSchema([name]);
+        const updateValidating = createValidationCleanup([name]);
+        const { errors } = await _runSchema([name], false);
 
         if (
           resetCallId !== _resetCallId ||
@@ -1551,6 +1567,7 @@ export function createFormControl<
           return;
         }
 
+        updateValidating();
         _updateIsFieldValueUpdated(fieldValue);
 
         if (!isFieldValueUpdated) {
@@ -2233,9 +2250,10 @@ export function createFormControl<
       };
 
       if (_options.resolver) {
+        const updateValidating = createValidationCleanup();
         let validationResult!: Awaited<ReturnType<typeof _runSchema>>;
         try {
-          validationResult = await _runSchema();
+          validationResult = await _runSchema(undefined, false);
         } catch (error) {
           onSubmitError(error);
         }
@@ -2245,6 +2263,7 @@ export function createFormControl<
           return;
         }
 
+        updateValidating();
         Object.keys(delayErrorCallbacks).forEach(cancelDelayedError);
         _formState.errors = errors;
         fieldValues = cloneObject(values);
