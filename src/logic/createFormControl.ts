@@ -825,7 +825,8 @@ export function createFormControl<
       );
       if (resetNames.length) {
         // Preserve newer field errors without mutating resolver-owned results.
-        result = { ...result, errors: cloneObject(result.errors) };
+        result = { ...result };
+        result.errors = cloneObject(result.errors);
         for (const resetName of resetNames) {
           const error = get(_formState.errors, resetName);
           error
