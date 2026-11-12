@@ -1,0 +1,25 @@
+{
+  "repository": "react-hook-form/react-hook-form",
+  "sourceRef": "6864846a29076d83d9d15c0925d0e71d9046d020",
+  "packageVersion": "7.92.0",
+  "fixtureSHA256": "39631314d178018a86fe7e34d1a623ac6d23bc10f975f692755ab61a0a8a86e6",
+  "sourceSHA256": {
+    "src/logic/createFormControl.ts": "5c0db8e8660f3c6accbf58029a47eddf4547a9288ec381f34463a7720efa152f",
+    "src/logic/validateField.ts": "fbd6ee37063115adf43db035b68df7f339c210ae36d847f458b70a502eaa657d",
+    "src/useForm.ts": "475545349072661bc7dc8772f596f9d492862a4436b7fd49402bae034421e84d"
+  },
+  "expectedBefore": {
+    "total": 6,
+    "passed": 4,
+    "assertionFailed": 2,
+    "runtimeErrors": 0,
+    "skipped": 0
+  },
+  "expectedAfter": {
+    "total": 6,
+    "passed": 6,
+    "assertionFailed": 0,
+    "runtimeErrors": 0,
+    "skipped": 0
+  }
+}

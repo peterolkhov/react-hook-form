@@ -1,0 +1,62 @@
+name: state42 stock RHF resetField before proof
+
+on:
+  push:
+    branches: [codex/diagnose-resetfield-pending-validation]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-before:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out this diagnostic packet
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          path: packet
+          persist-credentials: false
+      - name: Check out complete original upstream at pinned HEAD
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: react-hook-form/react-hook-form
+          ref: 6864846a29076d83d9d15c0925d0e71d9046d020
+          path: upstream
+          persist-credentials: false
+      - name: Install official pnpm version
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
+        with:
+          version: 11.7.0
+          run_install: false
+      - name: Install official Node major
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 22
+      - name: Record toolchain and enforce untouched whole-project source
+        working-directory: upstream
+        run: |
+          mkdir -p "$RUNNER_TEMP/state42"
+          node --version > "$RUNNER_TEMP/state42/node-version.txt"
+          pnpm --version > "$RUNNER_TEMP/state42/pnpm-version.txt"
+          node ../packet/.state42/source-guard.mjs before "$RUNNER_TEMP/state42"
+      - name: Install dependencies using the pinned project's own lockfile
+        working-directory: upstream
+        run: pnpm install --frozen-lockfile
+      - name: Run the ordinary public hook fixture through native Jest
+        working-directory: upstream
+        run: |
+          set +e
+          pnpm test --ci --runInBand --runTestsByPath src/__tests__/useForm/state42-resetField.test.tsx --json --outputFile="$RUNNER_TEMP/state42/jest-results.json" > "$RUNNER_TEMP/state42/native.log" 2>&1
+          result=$?
+          set -e
+          printf '%s\n' "$result" > "$RUNNER_TEMP/state42/test-exit-code.txt"
+          cat "$RUNNER_TEMP/state42/native.log"
+          node ../packet/.state42/assess-native.mjs "$RUNNER_TEMP/state42" before
+          cat "$RUNNER_TEMP/state42/jest-results.json"
+          cat "$RUNNER_TEMP/state42/rendered-receipts.json"
+      - name: Prove original tracked source and frozen fixture remain unchanged
+        if: always()
+        working-directory: upstream
+        run: node ../packet/.state42/source-guard.mjs after "$RUNNER_TEMP/state42"
